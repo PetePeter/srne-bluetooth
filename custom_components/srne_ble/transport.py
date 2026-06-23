@@ -18,9 +18,12 @@ from . import protocol as p
 
 _LOGGER = logging.getLogger(__name__)
 
-DEFAULT_TIMEOUT = 12.0   # seconds to await a complete reply
+# Fail fast: a slow/failing session must release its shared connection slot
+# quickly so it can't starve the other packs on the same proxy.
+CONNECT_TIMEOUT = 8.0    # seconds to establish the GATT connection
+DEFAULT_TIMEOUT = 5.0    # seconds to await a complete reply
 LOGIN_SETTLE = 1.0       # let the module process the login before the first read
-READ_RETRIES = 2         # resend the read within the session before giving up
+READ_RETRIES = 1         # single attempt — give up and free the slot
 
 
 class SrneBleError(Exception):
@@ -52,8 +55,11 @@ class SrneBleTransport:
 
     async def connect(self) -> None:
         self._loop = asyncio.get_running_loop()
-        self._client = BleakClient(self._device)
-        await self._client.connect()
+        self._client = BleakClient(self._device, timeout=CONNECT_TIMEOUT)
+        try:
+            await asyncio.wait_for(self._client.connect(), CONNECT_TIMEOUT)
+        except Exception as e:  # noqa: BLE001 — connect can raise many bleak errors
+            raise SrneBleError(f"connect failed: {e}") from e
         await self._client.start_notify(p.NOTIFY_CHAR, self._on_notify)
         # Mandatory module wake/login — without it the BMS never replies. Give
         # it a moment to process before the first read (the proxy link is slow).
