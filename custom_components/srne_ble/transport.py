@@ -18,7 +18,9 @@ from . import protocol as p
 
 _LOGGER = logging.getLogger(__name__)
 
-DEFAULT_TIMEOUT = 10.0  # seconds to await a complete reply
+DEFAULT_TIMEOUT = 12.0   # seconds to await a complete reply
+LOGIN_SETTLE = 1.0       # let the module process the login before the first read
+READ_RETRIES = 2         # resend the read within the session before giving up
 
 
 class SrneBleError(Exception):
@@ -53,8 +55,10 @@ class SrneBleTransport:
         self._client = BleakClient(self._device)
         await self._client.connect()
         await self._client.start_notify(p.NOTIFY_CHAR, self._on_notify)
-        # Mandatory module wake/login — without it the BMS never replies.
+        # Mandatory module wake/login — without it the BMS never replies. Give
+        # it a moment to process before the first read (the proxy link is slow).
         await self._client.write_gatt_char(p.WRITE_CHAR, p.LOGIN, response=False)
+        await asyncio.sleep(LOGIN_SETTLE)
 
     async def disconnect(self) -> None:
         if self._client is not None:
@@ -79,21 +83,20 @@ class SrneBleTransport:
     async def read(self, address: int, count: int) -> list[int]:
         if self._client is None or self._loop is None:
             raise SrneBleError("not connected")
-        self._buf = bytearray()
-        self._reply = self._loop.create_future()
-        await self._client.write_gatt_char(
-            p.WRITE_CHAR, p.build_read(address, count), response=False
-        )
-        try:
-            frame = await asyncio.wait_for(self._reply, self._timeout)
-        except asyncio.TimeoutError as e:
-            raise SrneBleError(f"no reply to read 0x{address:04X}") from e
-        finally:
-            self._reply = None
-        try:
-            return p.parse_response(frame)
-        except p.ProtocolError as e:
-            raise SrneBleError(str(e)) from e
+        frame = p.build_read(address, count)
+        last_err: Exception | None = None
+        for _ in range(READ_RETRIES):
+            self._buf = bytearray()
+            self._reply = self._loop.create_future()
+            await self._client.write_gatt_char(p.WRITE_CHAR, frame, response=False)
+            try:
+                reply = await asyncio.wait_for(self._reply, self._timeout)
+                return p.parse_response(reply)
+            except (asyncio.TimeoutError, p.ProtocolError) as e:
+                last_err = e
+            finally:
+                self._reply = None
+        raise SrneBleError(f"read 0x{address:04X} failed: {last_err}")
 
     async def read_realtime(self) -> list[int]:
         return await self.read(p.REALTIME_ADDR, p.REALTIME_COUNT)
