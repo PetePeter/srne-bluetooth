@@ -1,0 +1,20 @@
+{
+  "config": {
+    "flow_title": "{name}",
+    "step": {
+      "user": {
+        "title": "SRNE Battery",
+        "description": "Select a discovered SRNE/Tuner168 battery pack.",
+        "data": { "address": "Bluetooth device" }
+      },
+      "confirm": {
+        "title": "SRNE Battery",
+        "description": "Set up SRNE battery {address}?"
+      }
+    },
+    "abort": {
+      "no_devices_found": "No SRNE battery packs were discovered over Bluetooth.",
+      "already_configured": "This battery is already configured."
+    }
+  }
+}

@@ -1,0 +1,13 @@
+{
+  "domain": "srne_ble",
+  "name": "SRNE Bluetooth (Local)",
+  "bluetooth": [{ "service_uuid": "0000ffd0-0000-1000-8000-00805f9b34fb" }],
+  "codeowners": ["@PetePeter"],
+  "config_flow": true,
+  "dependencies": ["bluetooth_adapters"],
+  "documentation": "https://github.com/PetePeter/srne-bluetooth",
+  "iot_class": "local_polling",
+  "issue_tracker": "https://github.com/PetePeter/srne-bluetooth/issues",
+  "requirements": ["bleak>=0.22.0"],
+  "version": "0.1.0"
+}

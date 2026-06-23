@@ -97,14 +97,15 @@ user will select the target battery and the integration will handle the rest.
 - [x] Live GATT probing (direct from PC via `bleak`)
 - [x] Reverse-engineer the command/response frame format (Modbus over BLE)
 - [x] Decode cell voltages, temperatures, SOC, current, capacity (HA-verified)
+- [x] Implement BLE coordinator with login + notify/read pattern
+- [x] Expose sensor entities for all decoded fields (V/A/SOC/SOH/Ah/cycles/16 cells/temps)
+- [x] Config flow with BLE discovery
+- [x] Testing against real hardware (protocol unit tests + live decode matched to HA)
 - [ ] Bit-decode protection/alarm flag registers (`0x0309`–`0x030E`)
-- [ ] Implement BLE coordinator with write/notify pattern
-- [ ] Expose sensor entities for all decoded fields
 - [ ] Add binary sensors for MOSFET status and protection alarms
 - [ ] ESP32/ESPHome BLE-central poller near the battery bank (see PROTOCOL.md §9)
-- [ ] HACS repository setup and manifest
-- [ ] Config flow with BLE discovery
-- [ ] Testing against real hardware
+- [ ] Deploy to the HA instance and verify entities populate via the BT proxy
+- [ ] HACS repository setup
 
 ## Credits
 
