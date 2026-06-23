@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import random
 from datetime import timedelta
 
 from homeassistant.components.bluetooth import async_ble_device_from_address
@@ -23,7 +24,9 @@ _LOGGER = logging.getLogger(__name__)
 class SrneBleCoordinator(DataUpdateCoordinator):
     """Polls one SRNE pack's realtime telemetry over BLE."""
 
-    def __init__(self, hass, address: str, scan_interval: int) -> None:
+    def __init__(
+        self, hass, address: str, scan_interval: int, semaphore: asyncio.Semaphore
+    ) -> None:
         super().__init__(
             hass,
             _LOGGER,
@@ -32,16 +35,21 @@ class SrneBleCoordinator(DataUpdateCoordinator):
         )
         self._address = address
         self._consecutive_failures = 0
-        # One BLE central at a time — serialize sessions.
-        self._ble_lock = asyncio.Lock()
+        # Shared across all packs — caps concurrent BLE sessions on the proxy.
+        self._semaphore = semaphore
+        # Desync this pack's first poll so the five don't stampede at startup.
+        self._startup_jitter: float | None = random.uniform(0, scan_interval)
 
     @property
     def address(self) -> str:
         return self._address
 
     async def _async_update_data(self) -> dict:
+        if self._startup_jitter:
+            await asyncio.sleep(self._startup_jitter)
+            self._startup_jitter = None
         try:
-            async with self._ble_lock:
+            async with self._semaphore:
                 ble_device = async_ble_device_from_address(
                     self.hass, self._address, connectable=True
                 )
