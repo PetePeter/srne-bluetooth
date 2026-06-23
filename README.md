@@ -73,24 +73,32 @@ JBD/Xiaoxiang `0xDD` protocol. The command list was recovered from the
   (~10 m typical, varies by environment)
 - BLE adapter supported by Home Assistant (BlueZ on Linux)
 
-## Installation (future)
+## Installation (HACS)
 
-Not yet available. Planned distribution via HACS as a custom repository.
+[![Open in HACS](https://img.shields.io/badge/HACS-Custom-41BDF5.svg)](https://hacs.xyz/)
 
-1. Add this repository as a custom repository in HACS.
-2. Download the integration through HACS.
+1. In HACS → **⋮** → **Custom repositories**, add
+   `https://github.com/PetePeter/srne-bluetooth` with category **Integration**.
+2. Install **SRNE Bluetooth (Local)** from HACS.
 3. Restart Home Assistant.
-4. Add integration via Settings -> Devices & Services.
+4. Your `BAT1-*` packs are auto-discovered — confirm them under
+   **Settings → Devices & Services**. (Manual add by BLE address also works.)
 
-## Configuration (future)
+> Needs Home Assistant Bluetooth: a local adapter or an ESPHome Bluetooth proxy
+> within range of the packs (active connections required, not passive-only).
 
-The config flow will support BLE discovery of nearby `BAT1-*` devices. The
-user will select the target battery and the integration will handle the rest.
+### Manual installation
 
-| Field | Description |
-|-------|-------------|
-| BLE Device | Auto-discovered or manually selected BAT1 device |
-| Poll interval | How often to refresh telemetry (default 30 s) |
+Copy `custom_components/srne_ble/` into your HA `config/custom_components/` and
+restart.
+
+## Configuration
+
+Discovery is automatic. Each pack becomes a device exposing voltage, current,
+SOC, SOH, remaining/rated capacity, cycle count, 16 cell voltages, and
+temperatures (cell, MOSFET, ambient). Telemetry refreshes every 60 s; with
+multiple packs sharing one proxy, polls are staggered and capped to two
+concurrent BLE sessions automatically.
 
 ## TODO / Roadmap
 

@@ -1,8 +1,7 @@
 """Unit tests for the SRNE BLE wire protocol — real captured bytes, no mocks.
 
-The golden realtime frame below is built from registers actually read off pack
-``D8:B6:73:C2:80:1C`` and cross-checked against Home Assistant (see
-``docs/PROTOCOL.md`` §5).
+The golden realtime frame below is built from registers actually read off a live
+pack and cross-checked against Home Assistant (see ``docs/PROTOCOL.md`` §5).
 """
 from custom_components.srne_ble import protocol as p
 

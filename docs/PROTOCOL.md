@@ -2,7 +2,7 @@
 
 **Status (2026-06-23): fully reverse-engineered and verified live.** The access
 sequence, framing, and the realtime register map were captured from a live BAT1
-pack (`D8:B6:73:C2:80:1C`) from a Windows PC using `bleak`, and every field's
+live pack from a Windows PC using `bleak`, and every field's
 scaling was **cross-checked against the same pack's values in Home Assistant**
 (which integrates the packs over Tuya Local).
 
@@ -178,7 +178,7 @@ PIN reset uses `FFFF03020A<6-digit-puk-hex><crc>`.
 import asyncio
 from bleak import BleakScanner, BleakClient
 
-ADDR = "D8:B6:73:C2:80:1C"
+ADDR = "AA:BB:CC:DD:EE:FF"  # your BAT1 pack's BLE address
 FFD1 = "0000ffd1-0000-1000-8000-00805f9b34fb"  # TX
 FFF1 = "0000fff1-0000-1000-8000-00805f9b34fb"  # RX (notify)
 

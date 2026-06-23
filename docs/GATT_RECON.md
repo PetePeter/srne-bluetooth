@@ -6,26 +6,27 @@
 
 > This supersedes the earlier HA-scanner draft. All handles, UUIDs and values
 > below are **verified from a live, strong-signal connection** to a BAT1 unit
-> (`D8:B6:73:C2:80:1C`, RSSI ~-74).
+> (RSSI ~-74).
 
 ## Discovered Devices
 
 A 10 s scan found these relevant devices (all advertising service `0000ffd0`
 unless noted):
 
-| Name | MAC | RSSI | Adv service |
-|------|-----|------|-------------|
-| `BAT1-73C2801C` | `D8:B6:73:C2:80:1C` | -74 | `0000ffd0` |
-| `BAT1-9219B10C` | `84:C6:92:19:B1:0C` | -74 | `0000ffd0` |
-| `BAT1-9219A2EA` | `84:C6:92:19:A2:EA` | -77 | `0000ffd0` |
-| `BAT1-921A0392` | `84:C6:92:1A:03:92` | -76 | `0000ffd0` |
-| `BAT1-921AE6C1` | `84:C6:92:1A:E6:C1` | -81 | `0000ffd0` |
-| `D25618391540` | `68:79:C4:AA:6B:2F` | -66 | `00000922` (Deye logger) |
-| `0000PB40 … agl` | `38:3B:26:04:7F:F7` | -86 | `0000af00` (PB40) |
+| Name | MAC (OUI shown) | RSSI | Adv service |
+|------|-----------------|------|-------------|
+| `BAT1-xxxxxxxx` | `D8:B6:73:xx:xx:xx` | -74 | `0000ffd0` |
+| `BAT1-xxxxxxxx` | `84:C6:92:xx:xx:xx` | -74 | `0000ffd0` |
+| `BAT1-xxxxxxxx` | `84:C6:92:xx:xx:xx` | -77 | `0000ffd0` |
+| `BAT1-xxxxxxxx` | `84:C6:92:xx:xx:xx` | -76 | `0000ffd0` |
+| `BAT1-xxxxxxxx` | `84:C6:92:xx:xx:xx` | -81 | `0000ffd0` |
+| `D256xxxxxxxx` | `68:79:C4:xx:xx:xx` | -66 | `00000922` (Deye logger) |
+| `0000PB40 … agl` | `38:3B:26:xx:xx:xx` | -86 | `0000af00` (PB40) |
 
-Five `BAT1-*` BMS units (OUI `84:C6:92` / `D8:B6:73`) — consistent with a
-multi-pack bank, each pack with its own BLE module. The `D256…` device is the
-**Deye logger** (service `00000922`), a separate target documented elsewhere.
+(MAC suffixes masked.) Five `BAT1-*` BMS units (OUI `84:C6:92` / `D8:B6:73`) —
+consistent with a multi-pack bank, each pack with its own BLE module. The
+`D256…` device is the **Deye logger** (service `00000922`), a separate target
+documented elsewhere.
 
 ## Verified GATT Layout (BAT1)
 
@@ -45,7 +46,7 @@ MTU negotiated to **251 bytes** — full frames fit in a single notification.
 | `0x000b` | `2a24` Model Number | Read | `TC,R2#4,1,248,S` |
 | `0x000d` | `2a25` Serial Number | Read | `2019-11-5` |
 | `0x000f` | `2a26` Firmware Rev | Read | `V1.1` |
-| `0x0011` | `2a27` Hardware Rev | Read | `D8B673C2801C` (= MAC) |
+| `0x0011` | `2a27` Hardware Rev | Read | device MAC (no separators) |
 | `0x0013` | `2a28` Software Rev | Read | `V1.1` |
 | `0x0015` | `2a29` Manufacturer | Read | `www.tuner168.com` |
 | `0x0017` | `2a2a` IEEE Reg Cert | Read | — |
