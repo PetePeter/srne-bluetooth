@@ -82,13 +82,23 @@ async def async_setup_entry(hass, entry, async_add_entities) -> None:
     async_add_entities(entities)
 
 
-def _device_info(address: str) -> DeviceInfo:
+def _battery_label(coordinator) -> str:
+    """Human pack label keyed off the DIP address (battery N = DIP N+1).
+
+    Falls back to the BLE MAC when the DIP register has not been read yet.
+    """
+    dip = (coordinator.data or {}).get("dip_address")
+    return f"{dip + 1}" if dip is not None else coordinator.address
+
+
+def _device_info(coordinator) -> DeviceInfo:
+    address = coordinator.address
     return DeviceInfo(
         connections={("bluetooth", address)},
         identifiers={(DOMAIN, address)},
         manufacturer="Tuner168 / SRNE",
         model="FP-Bat (LFP-B)",
-        name=f"SRNE Battery {address}",
+        name=f"SRNE Battery {_battery_label(coordinator)}",
     )
 
 
@@ -101,7 +111,7 @@ class SrneScalarSensor(CoordinatorEntity, SensorEntity):
         super().__init__(coordinator)
         self.entity_description = description
         self._attr_unique_id = f"{coordinator.address}_{description.key}"
-        self._attr_device_info = _device_info(coordinator.address)
+        self._attr_device_info = _device_info(coordinator)
 
     @property
     def native_value(self):
@@ -124,7 +134,7 @@ class SrneCellSensor(CoordinatorEntity, SensorEntity):
         self._index = index
         self._attr_name = f"Cell {index + 1} Voltage"
         self._attr_unique_id = f"{coordinator.address}_cell_{index + 1}"
-        self._attr_device_info = _device_info(coordinator.address)
+        self._attr_device_info = _device_info(coordinator)
 
     @property
     def native_value(self):
