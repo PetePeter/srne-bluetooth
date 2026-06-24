@@ -15,7 +15,7 @@ from homeassistant.const import (
     UnitOfElectricPotential,
     UnitOfTemperature,
 )
-from homeassistant.helpers.entity import DeviceInfo
+from homeassistant.helpers.entity import DeviceInfo, EntityCategory
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from .const import DOMAIN
@@ -52,6 +52,8 @@ SENSORS: tuple[SrneSensor, ...] = (
                native_unit_of_measurement="Ah", suggested_display_precision=1),
     SrneSensor(key="cycles", name="Cycle Count",
                state_class=SensorStateClass.TOTAL_INCREASING),
+    SrneSensor(key="dip_address", name="DIP Address",
+               entity_category=EntityCategory.DIAGNOSTIC),
     SrneSensor(key="temp_1", name="Temperature 1", native_unit_of_measurement=_C,
                device_class=SensorDeviceClass.TEMPERATURE,
                state_class=SensorStateClass.MEASUREMENT, suggested_display_precision=1),

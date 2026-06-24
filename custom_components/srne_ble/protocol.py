@@ -95,6 +95,7 @@ def decode_realtime(words: list[int]) -> dict:
         "full_capacity": words[5] * 0.1,         # Ah
         "rated_capacity": words[6] * 0.1,        # Ah
         "cycles": words[7],                      # count
+        "dip_address": words[8],                  # parallel-bus / DIP address (0..n)
         "cell_voltages": [words[15 + i] / 1000 for i in range(NUM_CELLS)],  # V
         "temp_1": words[0x20] * 0.1,             # °C
         "temp_2": words[0x21] * 0.1,             # °C
