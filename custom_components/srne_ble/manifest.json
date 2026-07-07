@@ -8,6 +8,6 @@
   "documentation": "https://github.com/PetePeter/srne-bluetooth",
   "iot_class": "local_polling",
   "issue_tracker": "https://github.com/PetePeter/srne-bluetooth/issues",
-  "requirements": ["bleak>=0.22.0"],
+  "requirements": ["bleak>=0.22.0", "bleak-retry-connector>=3.0.0"],
   "version": "0.1.0"
 }
