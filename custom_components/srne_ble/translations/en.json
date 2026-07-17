@@ -16,5 +16,14 @@
       "no_devices_found": "No SRNE battery packs were discovered over Bluetooth.",
       "already_configured": "This battery is already configured."
     }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "SRNE Battery",
+        "description": "How often to poll the pack over Bluetooth.",
+        "data": { "scan_interval": "Poll interval (seconds)" }
+      }
+    }
   }
 }

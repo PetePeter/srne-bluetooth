@@ -12,9 +12,26 @@ from homeassistant.components.bluetooth import (
     BluetoothServiceInfoBleak,
     async_discovered_service_info,
 )
-from homeassistant.config_entries import ConfigFlow, ConfigFlowResult
+from homeassistant.config_entries import (
+    ConfigEntry,
+    ConfigFlow,
+    ConfigFlowResult,
+    OptionsFlow,
+)
+from homeassistant.core import callback
+from homeassistant.helpers.selector import (
+    NumberSelector,
+    NumberSelectorConfig,
+    NumberSelectorMode,
+)
 
-from .const import CONF_ADDRESS, DOMAIN, NAME_PREFIX
+from .const import (
+    CONF_ADDRESS,
+    CONF_SCAN_INTERVAL,
+    DEFAULT_SCAN_INTERVAL,
+    DOMAIN,
+    NAME_PREFIX,
+)
 
 
 def _is_srne(info: BluetoothServiceInfoBleak) -> bool:
@@ -29,6 +46,12 @@ class SrneBleConfigFlow(ConfigFlow, domain=DOMAIN):
     def __init__(self) -> None:
         self._discovered: dict[str, str] = {}  # address -> label
         self._address: str | None = None
+
+    @staticmethod
+    @callback
+    def async_get_options_flow(config_entry: ConfigEntry) -> SrneBleOptionsFlow:
+        """Return the options flow so the cog exposes the poll interval."""
+        return SrneBleOptionsFlow()
 
     async def async_step_bluetooth(
         self, discovery_info: BluetoothServiceInfoBleak
@@ -79,5 +102,38 @@ class SrneBleConfigFlow(ConfigFlow, domain=DOMAIN):
             step_id="user",
             data_schema=vol.Schema(
                 {vol.Required(CONF_ADDRESS): vol.In(self._discovered)}
+            ),
+        )
+
+
+class SrneBleOptionsFlow(OptionsFlow):
+    """Let the user tune the BLE poll interval from the integration cog."""
+
+    async def async_step_init(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        """Single step — edit the scan interval."""
+        if user_input is not None:
+            return self.async_create_entry(data=user_input)
+
+        current = self.config_entry.options.get(
+            CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL
+        )
+        return self.async_show_form(
+            step_id="init",
+            data_schema=vol.Schema(
+                {
+                    vol.Required(
+                        CONF_SCAN_INTERVAL, default=current
+                    ): NumberSelector(
+                        NumberSelectorConfig(
+                            min=30,
+                            max=120,
+                            step=1,
+                            unit_of_measurement="s",
+                            mode=NumberSelectorMode.SLIDER,
+                        )
+                    )
+                }
             ),
         )
