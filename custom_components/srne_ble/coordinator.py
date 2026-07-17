@@ -11,6 +11,7 @@ import logging
 import random
 from datetime import timedelta
 
+from bleak.exc import BleakError
 from homeassistant.components.bluetooth import async_ble_device_from_address
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 
@@ -58,7 +59,7 @@ class SrneBleCoordinator(DataUpdateCoordinator):
                 async with SrneBleTransport(ble_device) as transport:
                     words = await transport.read_realtime()
             data = p.decode_realtime(words)
-        except (SrneBleError, p.ProtocolError) as err:
+        except (SrneBleError, p.ProtocolError, BleakError) as err:
             self._consecutive_failures += 1
             if self._consecutive_failures <= MAX_POLL_FAILURES and self.data:
                 _LOGGER.debug(

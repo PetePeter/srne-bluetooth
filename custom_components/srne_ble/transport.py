@@ -72,11 +72,21 @@ class SrneBleTransport:
             )
         except Exception as e:  # noqa: BLE001 — connect can raise many bleak errors
             raise SrneBleError(f"connect failed: {e}") from e
-        await self._client.start_notify(p.NOTIFY_CHAR, self._on_notify)
-        # Mandatory module wake/login — without it the BMS never replies. Give
-        # it a moment to process before the first read (the proxy link is slow).
-        await self._client.write_gatt_char(p.WRITE_CHAR, p.LOGIN, response=False)
-        await asyncio.sleep(LOGIN_SETTLE)
+        # start_notify + login can raise raw bleak errors. The GATT connection is
+        # already open at this point, so on failure we MUST release it — the BMS
+        # accepts a single central and stops advertising while held, so a leaked
+        # connection wedges this pack (and eats a proxy slot) for minutes. Also
+        # re-raise as SrneBleError so the coordinator's grace window rides it out
+        # instead of flipping the pack unavailable on one bad poll.
+        try:
+            await self._client.start_notify(p.NOTIFY_CHAR, self._on_notify)
+            # Mandatory module wake/login — without it the BMS never replies. Give
+            # it a moment to process before the first read (the proxy link is slow).
+            await self._client.write_gatt_char(p.WRITE_CHAR, p.LOGIN, response=False)
+            await asyncio.sleep(LOGIN_SETTLE)
+        except Exception as e:  # noqa: BLE001 — notify/login can raise many bleak errors
+            await self.disconnect()
+            raise SrneBleError(f"login failed: {e}") from e
 
     async def disconnect(self) -> None:
         if self._client is not None:
