@@ -66,7 +66,7 @@ def test_session_yields_connected_transport_and_frees_everything():
     t = _run(go())
     assert t.disconnected
     assert m.active == {}
-    assert not m._sem.locked()  # permit returned
+    assert m._sched.held == 0  # permit returned
 
 
 def test_session_frees_on_body_error():
@@ -81,7 +81,7 @@ def test_session_frees_on_body_error():
     _run(go())
     assert created[-1].disconnected
     assert m.active == {}
-    assert not m._sem.locked()
+    assert m._sched.held == 0
 
 
 def test_session_frees_on_connect_error():
@@ -96,7 +96,7 @@ def test_session_frees_on_connect_error():
     _run(go())
     assert created[-1].disconnected  # disconnect still runs in finally
     assert m.active == {}
-    assert not m._sem.locked()
+    assert m._sched.held == 0
 
 
 def test_missing_device_raises_and_frees_without_building_transport():
@@ -111,7 +111,7 @@ def test_missing_device_raises_and_frees_without_building_transport():
     _run(go())
     assert created == []  # no transport built
     assert m.active == {}
-    assert not m._sem.locked()
+    assert m._sched.held == 0
 
 
 def test_concurrency_is_capped_to_max_connections():
@@ -135,4 +135,42 @@ def test_concurrency_is_capped_to_max_connections():
 
     _run(go())
     assert entered == ["A", "B"]
-    assert not m._sem.locked()
+    assert m._sched.held == 0
+
+
+def test_slot_wait_timeout_surfaces_as_srne_error():
+    # One slot, held open by A; B can't get in within the wait budget and must
+    # fail cleanly as an SrneBleError (which the coordinator rides out) — not a
+    # raw TimeoutError, and without leaking a permit.
+    m = _mgr(max_conn=1)
+    m._slot_wait_timeout = 0.05
+    release = asyncio.Event()
+
+    async def hold():
+        async with m.session("A"):
+            await release.wait()
+
+    async def go():
+        a = asyncio.create_task(hold())
+        await asyncio.sleep(0.02)
+        with pytest.raises(SrneBleError):
+            async with m.session("B"):
+                pass
+        release.set()
+        await a
+
+    _run(go())
+    assert m._sched.held == 0
+
+
+def test_turn_updates_fairness_timestamp():
+    clock = {"t": 100.0}
+    m = _mgr(max_conn=1)
+    m._clock = lambda: clock["t"]
+
+    async def go():
+        async with m.session("AA"):
+            pass
+
+    _run(go())
+    assert m._last_served["AA"] == 100.0
