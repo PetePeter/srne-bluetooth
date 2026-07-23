@@ -5,7 +5,6 @@ modules (``protocol``) can be imported without homeassistant for unit tests.
 """
 from __future__ import annotations
 
-import asyncio
 import logging
 
 from .const import (
@@ -13,8 +12,8 @@ from .const import (
     CONF_SCAN_INTERVAL,
     DEFAULT_SCAN_INTERVAL,
     DOMAIN,
+    MANAGER_KEY,
     MAX_CONCURRENT_CONNECTIONS,
-    SEMAPHORE_KEY,
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -24,6 +23,7 @@ PLATFORMS: list[str] = ["sensor"]
 
 async def async_setup_entry(hass, entry) -> bool:
     """Set up SRNE BLE from a config entry."""
+    from .connection_manager import SrneConnectionManager
     from .coordinator import SrneBleCoordinator
 
     address = entry.data[CONF_ADDRESS]
@@ -33,13 +33,15 @@ async def async_setup_entry(hass, entry) -> bool:
     _LOGGER.info("Setting up SRNE BLE for %s", address)
 
     domain_data = hass.data.setdefault(DOMAIN, {})
-    # One semaphore shared by every pack caps concurrent BLE sessions.
-    semaphore = domain_data.setdefault(
-        SEMAPHORE_KEY, asyncio.Semaphore(MAX_CONCURRENT_CONNECTIONS)
-    )
+    # One manager shared by every pack caps and lifecycles concurrent BLE
+    # sessions (guaranteed slot/permit release, even on a hung disconnect).
+    manager = domain_data.get(MANAGER_KEY)
+    if manager is None:
+        manager = SrneConnectionManager(hass, MAX_CONCURRENT_CONNECTIONS)
+        domain_data[MANAGER_KEY] = manager
 
     coordinator = SrneBleCoordinator(
-        hass, address=address, scan_interval=scan_interval, semaphore=semaphore
+        hass, address=address, scan_interval=scan_interval, manager=manager
     )
     await coordinator.async_config_entry_first_refresh()
 

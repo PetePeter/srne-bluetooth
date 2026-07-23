@@ -25,6 +25,12 @@ CONNECT_ATTEMPTS = 3     # establish_connection retries transient proxy failures
 DEFAULT_TIMEOUT = 8.0    # seconds to await a complete reply
 LOGIN_SETTLE = 1.0       # let the module process the login before the first read
 READ_RETRIES = 1         # single attempt — give up and free the slot
+# Teardown must never hang: a gone pack or a slow proxy can make stop_notify /
+# disconnect block forever, which would pin BOTH the proxy connection slot AND
+# the shared semaphore permit and starve the other packs. Bound every teardown
+# radio call.
+STOP_NOTIFY_TIMEOUT = 5.0
+DISCONNECT_TIMEOUT = 10.0
 
 
 class SrneBleError(Exception):
@@ -89,13 +95,23 @@ class SrneBleTransport:
             raise SrneBleError(f"login failed: {e}") from e
 
     async def disconnect(self) -> None:
-        if self._client is not None:
+        # Null the handle first so this is idempotent and re-entrant safe, then
+        # release the link defensively. Every radio call is timeout-bounded and
+        # shielded: a hung teardown must not block the caller (which would keep
+        # the proxy slot + semaphore permit held and starve the other packs);
+        # shielding lets the disconnect still finish in the background if the
+        # surrounding poll is cancelled, rather than abandoning a half-open link.
+        client, self._client = self._client, None
+        if client is None:
+            return
+        for coro, timeout in (
+            (client.stop_notify(p.NOTIFY_CHAR), STOP_NOTIFY_TIMEOUT),
+            (client.disconnect(), DISCONNECT_TIMEOUT),
+        ):
             try:
-                await self._client.stop_notify(p.NOTIFY_CHAR)
-            except Exception:  # noqa: BLE001 — best-effort on teardown
+                await asyncio.wait_for(asyncio.shield(coro), timeout)
+            except Exception:  # noqa: BLE001 — teardown is best-effort, never raises
                 pass
-            await self._client.disconnect()
-            self._client = None
 
     def _on_notify(self, _char, data: bytearray) -> None:
         if self._reply is None or self._reply.done():

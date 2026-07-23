@@ -19,7 +19,7 @@ MAX_POLL_FAILURES = 20
 # at a time. Use all three proxy slots, but a failing session must release its
 # slot fast (see transport fail-fast timeouts) so it can't starve the others.
 MAX_CONCURRENT_CONNECTIONS = 3
-SEMAPHORE_KEY = "_ble_semaphore"
+MANAGER_KEY = "_ble_manager"
 
 # Advertised local-name prefix for the SRNE/Tuner168 packs.
 NAME_PREFIX = "BAT1-"
